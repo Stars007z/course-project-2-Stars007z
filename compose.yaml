@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     build: .
@@ -5,4 +7,14 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-    profiles: ["dev"]
+      - DATABASE_URL=sqlite:///./app.db
+      - SECRET_KEY=very-secure-test-key-for-ci
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
