@@ -5,12 +5,12 @@ services:
     build: .
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./app.db:/app/app.db
+      - DATABASE_URL=sqlite:///./app.db
+      - SECRET_KEY=very-secure-test-key-for-ci
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
