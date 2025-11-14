@@ -25,7 +25,8 @@ jobs:
           echo "2. Reset main to previous state: git checkout main && git reset --hard HEAD~1"
           echo "3. Push your changes in branch and create new Pull Request and then merge"
           exit 1
-  build:
+
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,3 +52,70 @@ jobs:
 
       - name: Pre-commit (all files)
         run: pre-commit run --all-files
+
+  container-security:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          format: tty
+          config: .github/linters/.hadolint.yaml
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: feature-votes:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'feature-votes:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Test non-root user
+        run: |
+          USER_ID=$(docker run --rm feature-votes:latest id -u)
+          if [ "$USER_ID" != "0" ]; then
+            echo "✓ Container runs as non-root user (UID: $USER_ID)"
+          else
+            echo "✗ Container runs as root"
+            exit 1
+          fi
+
+      - name: Test container health
+        run: |
+          docker compose up -d
+          sleep 30  # ждем пока приложение запустится
+          HEALTH_STATUS=$(docker inspect --format='{{json .State.Health}}' $(docker compose ps -q app))
+          echo "Health status: $HEALTH_STATUS"
+          if echo "$HEALTH_STATUS" | grep -q '"Status":"healthy"'; then
+            echo "✓ Container is healthy"
+          else
+            echo "✗ Container is not healthy"
+            docker compose logs app
+            exit 1
+          fi
+        env:
+          COMPOSE_DOCKER_CLI_BUILD: 0
