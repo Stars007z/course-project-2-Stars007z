@@ -8,10 +8,13 @@ RUN --mount=type=cache,target=/root/.cache \
 
 FROM python:3.11-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
+
+# Установка curl для healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Создание непривилегированного пользователя
 RUN groupadd -r appuser && useradd -r -g appuser appuser
