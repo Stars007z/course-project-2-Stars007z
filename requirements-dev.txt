@@ -4,3 +4,12 @@ ruff==0.6.9
 black==24.8.0
 isort==5.13.2
 pre-commit==3.8.0
+fastapi==0.112.2
+uvicorn==0.30.5
+slowapi
+sqlalchemy
+pydantic[email]
+python-jose[cryptography]
+python-dotenv
+bcrypt
+pytest-cov
