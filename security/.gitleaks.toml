@@ -1,0 +1,19 @@
+title = "Feature Votes Gitleaks config"
+
+[extend]
+use_default = true
+
+[allowlist]
+
+paths = [
+  '''^EVIDENCE/''',
+  '''^.git/''',
+  '''^\.pytest_cache/''',
+  '''^.*\.lock$''',
+]
+
+regexes = [
+  '''TEST_SECRET_.*''',
+  '''fake-api-key''',
+  '''example\.com''',
+]
