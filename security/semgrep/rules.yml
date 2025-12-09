@@ -1,21 +1,9 @@
 rules:
-  # Правило против небезопасного возврата пользовательских данных
-  - id: fastapi-unsafe-user-input-in-response
-    languages: [python]
-    message: "Potential XSS or information leak: raw user input returned in response body without sanitization"
-    severity: WARNING
+  - id: python-no-eval
+    languages: [ python ]
+    message: "Avoid eval() — leads to code injection"
+    severity: ERROR
     patterns:
-      - pattern-either:
-          - pattern: |
-              return {$USER_INPUT}
-          - pattern: |
-              JSONResponse(content={...$USER_INPUT...})
-    metavariable-pattern:
-      metavariable: $USER_INPUT
-      pattern-inside: |
-        @app.$METHOD(...)
-        def $FUNC(..., $REQ: Request, ...):
-          ...
+      - pattern: eval($X)
     metadata:
-      category: security
-      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
