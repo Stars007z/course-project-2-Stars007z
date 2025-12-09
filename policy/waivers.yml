@@ -1,0 +1,13 @@
+# policy/waivers.yml — исключения для SCA
+
+waivers:
+
+  # Шаблонная заглушка (минимум для C4★1)
+  - id: "PLACEHOLDER"
+    package: "none"
+    version: "0.0.0"
+    severity: "Low"
+    reason: "No real waivers yet — template only."
+    issue: "https://github.com/your-org/your-repo/issues/1"
+    expires_at: "2025-12-31"
+    approved_by: "tutor@example.org"
