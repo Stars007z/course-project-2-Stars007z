@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  actions: write
 
 jobs:
   dast:
@@ -41,7 +43,23 @@ jobs:
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
-          target: "http://localhost:8000/health"
+          target: "http://localhost:8000"
           artifact_name: "P11_EVIDENCE"
           fail_action: false
           cmd_options: "-d"
+          allow_issue_writing: false
+
+      - name: Ensure evidence dirs
+        run: mkdir -p EVIDENCE/P11
+
+      - name: Copy reports to EVIDENCE
+        run: |
+          cp report_html.html EVIDENCE/P11/zap_baseline.html || true
+          cp report_json.json EVIDENCE/P11/zap_baseline.json || true
+
+      - name: Upload DAST evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: P11_EVIDENCE_FINAL
+          path: EVIDENCE/P11
