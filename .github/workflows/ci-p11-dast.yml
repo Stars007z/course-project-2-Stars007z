@@ -44,7 +44,7 @@ jobs:
         run: |
           uvicorn app.main:app --host 0.0.0.0 --port 8080 &
           echo "Waiting for app to start..."
-          timeout 30 bash -c 'until curl -sf http://localhost:8080/healthz; do sleep 1; done'
+          timeout 30 bash -c 'until curl -sf http://localhost:8080/health; do sleep 1; done'
           echo "App is ready!"
 
       - name: ZAP Baseline Scan
