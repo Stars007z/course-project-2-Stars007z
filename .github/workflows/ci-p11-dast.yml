@@ -49,12 +49,12 @@ jobs:
 
       - name: ZAP Baseline Scan
         run: |
-          docker run --rm --network host -v $PWD:/zap/wrk:z owasp/zap2docker-stable \
-            zap-baseline.py \
-              -t http://localhost:8080 \
-              -r zap_baseline.html \
-              -J zap_baseline.json \
-              -d || true
+         docker run --rm --network host -v $PWD:/zap/wrk:z \
+         ghcr.io/zaproxy/zap-baseline:latest \
+            -t http://localhost:8080 \
+            -r zap_baseline.html \
+            -J zap_baseline.json \
+            -d || true
           mv zap_baseline.* EVIDENCE/P11/ || true
 
       - name: Upload DAST evidence
