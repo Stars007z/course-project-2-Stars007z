@@ -1,0 +1,81 @@
+name: Security - IaC & Container (P12)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "security/**"
+      - ".github/workflows/ci-p12-iac-container.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  iac_container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure evidence dirs
+        run: mkdir -p EVIDENCE/P12
+
+      - name: Hadolint — Dockerfile
+        run: |
+          if [ -f security/hadolint.yaml ]; then
+            docker run --rm -v $PWD:/src hadolint/hadolint:latest-alpine \
+              hadolint -f json --config /src/security/hadolint.yaml /src/Dockerfile \
+              > EVIDENCE/P12/hadolint_report.json || echo '[]' > EVIDENCE/P12/hadolint_report.json
+          else
+            docker run --rm -v $PWD:/src hadolint/hadolint:latest-alpine \
+              hadolint -f json /src/Dockerfile \
+              > EVIDENCE/P12/hadolint_report.json || echo '[]' > EVIDENCE/P12/hadolint_report.json
+          fi
+
+      - name: Checkov — IaC (docker-compose.yml)
+        run: |
+          if [ -f security/checkov.yaml ]; then
+            docker run --rm -v $PWD:/src bridgecrew/checkov:latest \
+              -d /src \
+              --framework docker-compose,dockerfile \
+              --config-file /src/security/checkov.yaml \
+              --output json \
+              --compact \
+              > EVIDENCE/P12/checkov_report.json || echo '{}' > EVIDENCE/P12/checkov_report.json
+          else
+            docker run --rm -v $PWD:/src bridgecrew/checkov:latest \
+              -d /src \
+              --framework docker-compose,dockerfile \
+              --output json \
+              --compact \
+              > EVIDENCE/P12/checkov_report.json || echo '{}' > EVIDENCE/P12/checkov_report.json
+          fi
+
+      - name: Build Docker image
+        run: |
+          docker build -t app:local .
+
+      - name: Trivy — Container image
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $PWD:/work \
+            aquasec/trivy:latest \
+            image --format json \
+            --output /work/EVIDENCE/P12/trivy_report.json \
+            app:local || echo '{}' > EVIDENCE/P12/trivy_report.json
+
+      - name: Upload P12 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: P12_EVIDENCE
+          path: EVIDENCE/P12
