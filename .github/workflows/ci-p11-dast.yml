@@ -47,6 +47,10 @@ jobs:
           timeout 30 bash -c 'until curl -sf http://localhost:8000/health; do sleep 1; done'
           echo " App is ready!"
 
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Run OWASP ZAP Baseline Scan
         run: |
          docker run --rm --network host -v $PWD:/zap/wrk:z \
