@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -48,17 +49,15 @@ jobs:
 
       - name: Run OWASP ZAP Baseline Scan
         run: |
-          # Используем официальный образ ZAP baseline из GHCR
-          docker run --rm --network host -v $PWD:/zap/wrk:z \
-            ghcr.io/zaproxy/zap-baseline:latest \
-              -t http://localhost:8000 \
-              -r zap_baseline.html \
-              -J zap_baseline.json \
-              -d || true
+         docker run --rm --network host -v $PWD:/zap/wrk:z \
+           ghcr.io/zaproxy/zap-baseline:latest \
+            -t http://localhost:8000/health \
+             -r zap_baseline.html \
+             -J zap_baseline.json \
+             -d || true
 
-          # Перемещаем отчёты в evidence
-          mv zap_baseline.html EVIDENCE/P11/ 2>/dev/null || echo "No HTML report"
-          mv zap_baseline.json EVIDENCE/P11/ 2>/dev/null || echo "No JSON report"
+         mv zap_baseline.html EVIDENCE/P11/ 2>/dev/null || echo "No HTML report"
+         mv zap_baseline.json EVIDENCE/P11/ 2>/dev/null || echo "No JSON report"
 
       - name: Upload DAST evidence
         if: always()
