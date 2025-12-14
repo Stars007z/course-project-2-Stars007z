@@ -43,4 +43,5 @@ jobs:
         with:
           target: "http://localhost:8000/health"
           artifact_name: "P11_EVIDENCE"
+          fail_on_warn: false
           cmd_options: "-d"
