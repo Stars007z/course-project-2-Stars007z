@@ -5,18 +5,12 @@ on:
   push:
     paths:
       - "app/**/*.py"
-      - "src/**/*.py"
       - "*.py"
       - "requirements*.txt"
       - ".github/workflows/ci-p11-dast.yml"
 
 permissions:
   contents: read
-  packages: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   dast:
@@ -35,37 +29,32 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
 
       - name: Ensure evidence dirs
         run: mkdir -p EVIDENCE/P11
 
-      - name: Run FastAPI app (port 8000)
+      - name: Run FastAPI app
         run: |
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          echo "Waiting for app to respond on http://localhost:8000/health..."
+          echo "Waiting for /health..."
           timeout 30 bash -c 'until curl -sf http://localhost:8000/health; do sleep 1; done'
-          echo " App is ready!"
-
-      - name: Login to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "App is ready"
 
       - name: Run OWASP ZAP Baseline Scan
         run: |
           docker run --rm --network host -v $PWD:/zap/wrk:z \
-            ghcr.io/zaproxy/zap2docker-stable \
+            owasp/zap2docker-stable \
             zap-baseline.py \
               -t http://localhost:8000/health \
               -r zap_baseline.html \
               -J zap_baseline.json \
               -d || true
 
-          mv zap_baseline.html EVIDENCE/P11/ 2>/dev/null || echo "No HTML report"
-          mv zap_baseline.json EVIDENCE/P11/ 2>/dev/null || echo "No JSON report"
+          mv zap_baseline.html EVIDENCE/P11/
+          mv zap_baseline.json EVIDENCE/P11/
 
       - name: Upload DAST evidence
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: P11_EVIDENCE
