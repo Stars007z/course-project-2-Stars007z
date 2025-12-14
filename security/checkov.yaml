@@ -1,0 +1,5 @@
+framework:
+  - dockerfile
+  - dockercompose
+
+skip-check: []
